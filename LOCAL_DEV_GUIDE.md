@@ -2,39 +2,39 @@
 
 > **Who is this for?** Windows developers who want to run, test, and iterate on DeerFlow locally — covering every software you need to install, why you need it, and how to get from zero to a running full-stack environment as fast as possible.
 
----
+***
 
 ## Table of Contents
 
 1. [Architecture at a Glance](#1-architecture-at-a-glance)
 2. [Prerequisites — Install Once](#2-prerequisites--install-once)
-   - [Git](#21-git)
-   - [Python 3.12 via uv](#22-python-312-via-uv)
-   - [Node.js 22+](#23-nodejs-22)
-   - [pnpm](#24-pnpm)
-   - [Nginx for Windows](#25-nginx-for-windows)
-   - [(Optional) Docker Desktop](#26-optional-docker-desktop)
+   * [Git](#21-git)
+   * [Python 3.12 via uv](#22-python-312-via-uv)
+   * [Node.js 22+](#23-nodejs-22)
+   * [pnpm](#24-pnpm)
+   * [Nginx for Windows](#25-nginx-for-windows)
+   * [(Optional) Docker Desktop](#26-optional-docker-desktop)
 3. [Clone the Repository](#3-clone-the-repository)
 4. [First-Time Configuration](#4-first-time-configuration)
-   - [Generate config files](#41-generate-config-files)
-   - [Configure an LLM model](#42-configure-an-llm-model)
-   - [Set API keys](#43-set-api-keys)
+   * [Generate config files](#41-generate-config-files)
+   * [Configure an LLM model](#42-configure-an-llm-model)
+   * [Set API keys](#43-set-api-keys)
 5. [Install All Dependencies](#5-install-all-dependencies)
 6. [Running the Full Stack Locally (Fast Dev Mode)](#6-running-the-full-stack-locally-fast-dev-mode)
-   - [Option A — One command (all services)](#option-a--one-command-all-services-easiest)
-   - [Option B — Services in separate terminals (recommended for development)](#option-b--services-in-separate-terminals-recommended-for-development)
+   * [Option A — One command (all services)](#option-a--one-command-all-services-easiest)
+   * [Option B — Services in separate terminals (recommended for development)](#option-b--services-in-separate-terminals-recommended-for-development)
 7. [Development Workflows](#7-development-workflows)
-   - [Frontend-only changes](#71-frontend-only-changes)
-   - [Backend-only changes](#72-backend-only-changes-langgraph-agent)
-   - [Gateway API changes](#73-gateway-api-changes)
-   - [Running backend tests](#74-running-backend-tests)
-   - [Linting and formatting](#75-linting-and-formatting)
+   * [Frontend-only changes](#71-frontend-only-changes)
+   * [Backend-only changes](#72-backend-only-changes-langgraph-agent)
+   * [Gateway API changes](#73-gateway-api-changes)
+   * [Running backend tests](#74-running-backend-tests)
+   * [Linting and formatting](#75-linting-and-formatting)
 8. [Understanding the Service Ports](#8-understanding-the-service-ports)
 9. [Key Config Files](#9-key-config-files)
 10. [Windows-Specific Notes & Troubleshooting](#10-windows-specific-notes--troubleshooting)
 11. [Connecting a Telegram Channel](#11-connecting-a-telegram-channel)
 
----
+***
 
 ## 1. Architecture at a Glance
 
@@ -51,16 +51,16 @@ Browser → http://localhost:2026
                       uploads, etc.)
 ```
 
-| Service | Port | What it does |
-|---|---|---|
-| **Nginx** | `2026` | Unified entry point — routes requests to the right service |
-| **LangGraph Server** | `2024` | Runs the AI lead agent, manages threads, streams results |
-| **Gateway API** | `8001` | FastAPI endpoints for models, skills, memory, file uploads |
-| **Frontend (Next.js)** | `3000` | React web UI |
+| Service                | Port   | What it does                                               |
+| ---------------------- | ------ | ---------------------------------------------------------- |
+| **Nginx**              | `2026` | Unified entry point — routes requests to the right service |
+| **LangGraph Server**   | `2024` | Runs the AI lead agent, manages threads, streams results   |
+| **Gateway API**        | `8001` | FastAPI endpoints for models, skills, memory, file uploads |
+| **Frontend (Next.js)** | `3000` | React web UI                                               |
 
 You only ever open `http://localhost:2026` in your browser; Nginx handles the routing.
 
----
+***
 
 ## 2. Prerequisites — Install Once
 
@@ -72,29 +72,32 @@ Download and install from [git-scm.com/download/win](https://git-scm.com/downloa
 Accept all default options during installation.
 
 Verify in a new PowerShell or CMD window:
-```powershell
+
+```PowerShell
 git --version
 ```
 
----
+***
 
 ### 2.2 Python 3.12 via `uv`
 
 **Why:** The backend is written in Python 3.12 and uses [`uv`](https://docs.astral.sh/uv/) as its package/environment manager (replaces pip + virtualenv). `uv` is extremely fast and handles the Python version automatically.
 
-**Install `uv`** (this also installs the correct Python version for you):
-```powershell
+**Install** **`uv`** (this also installs the correct Python version for you):
+
+```PowerShell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 Restart your terminal, then verify:
-```powershell
+
+```PowerShell
 uv --version
 ```
 
 > `uv` will automatically download Python 3.12 the first time you run `uv sync` inside the project, because the `backend/.python-version` file pins it to `3.12`. You do **not** need to install Python separately.
 
----
+***
 
 ### 2.3 Node.js 22+
 
@@ -104,27 +107,30 @@ Download the **LTS (v22.x)** installer from [nodejs.org](https://nodejs.org/en/d
 Run the `.msi` installer and accept defaults.
 
 Verify:
-```powershell
+
+```PowerShell
 node -v   # Should show v22.x.x or higher
 ```
 
----
+***
 
 ### 2.4 pnpm
 
 **Why:** The frontend uses `pnpm` (not npm or yarn) as its package manager. It is faster and uses a shared content-addressable cache to save disk space.
 
 Install after Node.js is set up:
-```powershell
+
+```PowerShell
 npm install -g pnpm
 ```
 
 Verify:
-```powershell
+
+```PowerShell
 pnpm -v
 ```
 
----
+***
 
 ### 2.5 Nginx for Windows
 
@@ -135,18 +141,18 @@ pnpm -v
 1. Download the stable Windows ZIP from [nginx.org/en/download.html](https://nginx.org/en/download.html) (e.g., `nginx-1.xx.x.zip`).
 2. Extract it to a simple path like `C:\nginx\`.
 3. Add `C:\nginx\` to your **system PATH**:
-   - Open **Start → Search "Environment Variables"**
-   - Click **"Edit the system environment variables"** → **Environment Variables**
-   - Under **System variables**, select `Path` → **Edit** → **New** → add `C:\nginx\`
-   - Click OK on all dialogs
+   * Open **Start → Search "Environment Variables"**
+   * Click **"Edit the system environment variables"** → **Environment Variables**
+   * Under **System variables**, select `Path` → **Edit** → **New** → add `C:\nginx\`
+   * Click OK on all dialogs
 4. Open a **new** PowerShell and verify:
-   ```powershell
+   ```PowerShell
    nginx -v
    ```
 
 > **Note:** The `make dev` command (from project root) starts nginx automatically using the config at `docker/nginx/nginx.local.conf`. You do not need to start it manually.
 
----
+***
 
 ### 2.6 (Optional) Docker Desktop
 
@@ -155,20 +161,20 @@ pnpm -v
 Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/).
 After install, ensure Docker Desktop is running before using any Docker-related commands.
 
----
+***
 
 ## 3. Clone the Repository
 
 Open PowerShell and run:
 
-```powershell
+```PowerShell
 git clone https://github.com/bytedance/deer-flow.git
 cd deer-flow
 ```
 
 All subsequent commands are run from this `deer-flow/` root directory unless stated otherwise.
 
----
+***
 
 ## 4. First-Time Configuration
 
@@ -176,23 +182,25 @@ All subsequent commands are run from this `deer-flow/` root directory unless sta
 
 **Why:** The project ships with example config templates. You run this once to create your own local copies that won't be accidentally committed to Git.
 
-```powershell
+```PowerShell
 python .\scripts\configure.py
 ```
 
 This creates:
-- `config.yaml` (copied from `config.example.yaml`) — main app config
-- `.env` (copied from `.env.example`) — API keys
-- `frontend/.env` (copied from `frontend/.env.example`) — frontend environment variables
+
+* `config.yaml` (copied from `config.example.yaml`) — main app config
+* `.env` (copied from `.env.example`) — API keys
+* `frontend/.env` (copied from `frontend/.env.example`) — frontend environment variables
 
 Then manually copy the MCP/skills config:
-```powershell
+
+```PowerShell
 Copy-Item extensions_config.example.json extensions_config.json
 ```
 
 This creates `extensions_config.json` — controls which MCP servers and skills are enabled. The script does not generate this file automatically.
 
----
+***
 
 ### 4.2 Configure an LLM model
 
@@ -200,7 +208,7 @@ This creates `extensions_config.json` — controls which MCP servers and skills 
 
 The simplest example using **OpenAI GPT-4**:
 
-```yaml
+```YAML
 models:
   - name: gpt-4
     display_name: GPT-4
@@ -214,7 +222,7 @@ models:
 
 > For other providers (Anthropic, Google Gemini, DeepSeek, OpenRouter, etc.), see the commented examples already in `config.yaml`.
 
----
+***
 
 ### 4.3 Set API keys
 
@@ -235,13 +243,13 @@ JINA_API_KEY=jina_...
 
 > All keys prefixed with `$` in `config.yaml` are automatically read from this `.env` file at startup.
 
----
+***
 
 ## 5. Install All Dependencies
 
 **Why:** This installs all Python packages (backend) and all Node.js packages (frontend) into local environments.
 
-```powershell
+```PowerShell
 # Install backend Python dependencies via uv
 cd backend
 uv sync
@@ -254,20 +262,22 @@ cd ..
 ```
 
 Or equivalently (from the project root, if `make` is available in WSL or Git Bash):
-```bash
+
+```Shell
 make install
 ```
 
 > `uv sync` reads `backend/pyproject.toml` and `backend/uv.lock`, creating a `.venv` inside `backend/`. `pnpm install` reads `frontend/package.json`.
 
----
+***
 
 ## 6. Running the Full Stack Locally (Fast Dev Mode)
 
 ### Option A — One command (all services, easiest)
 
 If you have `make` available (via Git Bash or WSL):
-```bash
+
+```Shell
 make dev
 ```
 
@@ -275,25 +285,26 @@ This starts all four services (LangGraph server, Gateway API, Next.js, Nginx) in
 
 **On native PowerShell** (without make), use Option B below.
 
----
+***
 
 ### Option B — Services in separate terminals (recommended for development)
 
 If you want the Windows helper to do the dependency install, run both migration flows, and then open the service windows for you, run this once from the project root:
 
-```powershell
+```PowerShell
 .\start-dev.ps1
 ```
 
 What it does before opening the windows:
-- Runs `uv sync` in `backend/`
-- Runs `pnpm install` in `frontend/`
-- Starts nginx, LangGraph with reload enabled, Gateway with reload enabled, and the frontend with `pnpm run dev`
-- Runs them hidden in the background by default so you stay in one parent terminal
+
+* Runs `uv sync` in `backend/`
+* Runs `pnpm install` in `frontend/`
+* Starts nginx, LangGraph with reload enabled, Gateway with reload enabled, and the frontend with `pnpm run dev`
+* Runs them hidden in the background by default so you stay in one parent terminal
 
 Useful variants:
 
-```powershell
+```PowerShell
 .\start-dev-visible.ps1           # separate windows with visible logs
 .\start-dev.ps1 -Stop             # stop services started by the helper
 .\stop-dev.ps1                    # dedicated shutdown script
@@ -305,18 +316,18 @@ Open **4 separate PowerShell terminals**, all from the project root directory:
 
 #### Terminal 1 — LangGraph Agent Server (port 2024)
 
-```powershell
+```PowerShell
 cd backend
 uv run langgraph dev --no-browser --allow-blocking
 ```
 
 **Why:** This is the AI agent engine. It runs the `lead_agent` LangGraph workflow that processes chat messages and streams results. Changes here require manual restart.
 
----
+***
 
 #### Terminal 2 — Gateway API (port 8001)
 
-```powershell
+```PowerShell
 cd backend
 $env:PYTHONPATH = "."
 uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --reload
@@ -324,28 +335,30 @@ uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --reload
 
 **Why:** This is the FastAPI REST server that handles models listing, skill management, memory, file uploads, and more. The `--reload` flag gives hot-reload on file changes — great for iterating on API endpoints quickly.
 
----
+***
 
 #### Terminal 3 — Frontend (port 3000)
 
-```powershell
+```PowerShell
 cd frontend
 pnpm dev
 ```
 
 **Why:** This starts the Next.js frontend with Turbopack (`--turbo` flag is set in `package.json`), which gives extremely fast hot-module replacement. Any `.tsx`/`.ts` file change is reflected in the browser in under 1 second.
 
----
+***
 
 #### Terminal 4 — Nginx Reverse Proxy (port 2026)
 
 Before starting nginx for the first time, create the directories it needs:
-```powershell
+
+```PowerShell
 New-Item -ItemType Directory -Force -Path "logs", "temp\client_body_temp", "temp\proxy_temp", "temp\fastcgi_temp", "temp\uwsgi_temp", "temp\scgi_temp"
 ```
 
 Then start nginx:
-```powershell
+
+```PowerShell
 nginx -c "$PWD\docker\nginx\nginx.local.conf" -p "$PWD"
 ```
 
@@ -353,16 +366,17 @@ nginx -c "$PWD\docker\nginx\nginx.local.conf" -p "$PWD"
 
 > **⚠️ The terminal will appear "frozen" with no output after running this command — that is correct.** Nginx runs as a foreground process and keeps the terminal occupied while it is alive. Leave this terminal open and open a new one for other commands.
 
-> **Access the app at:** [http://localhost:2026](http://localhost:2026)
+> **Access the app at:** <http://localhost:2026>
 
 To stop Nginx cleanly, open a **new** terminal in the project root and run:
-```powershell
+
+```PowerShell
 nginx -c "$PWD\docker\nginx\nginx.local.conf" -p "$PWD" -s quit
 ```
 
 Or press **Ctrl+C** in the nginx terminal (less graceful but works).
 
----
+***
 
 ## 7. Development Workflows
 
@@ -373,14 +387,15 @@ Or press **Ctrl+C** in the nginx terminal (less graceful but works).
 The Next.js dev server (`pnpm dev`) watches all files under `frontend/src/`. Any `.tsx`, `.ts`, or `.css` change hot-reloads the browser automatically. **No restart needed.**
 
 Key directories:
-| Path | Purpose |
-|---|---|
-| `frontend/src/app/` | Next.js pages (App Router) |
-| `frontend/src/components/` | React components |
-| `frontend/src/core/api/` | API client — where backend calls are made |
-| `frontend/src/core/threads/` | Thread state management |
 
----
+| Path                         | Purpose                                   |
+| ---------------------------- | ----------------------------------------- |
+| `frontend/src/app/`          | Next.js pages (App Router)                |
+| `frontend/src/components/`   | React components                          |
+| `frontend/src/core/api/`     | API client — where backend calls are made |
+| `frontend/src/core/threads/` | Thread state management                   |
+
+***
 
 ### 7.2 Backend-only changes (LangGraph agent)
 
@@ -388,24 +403,25 @@ Key directories:
 
 The LangGraph server does **not** auto-reload (it's started with `--no-reload`). After editing agent code, restart Terminal 1:
 
-```powershell
+```PowerShell
 # In Terminal 1 (Ctrl+C first, then):
 uv run langgraph dev --no-browser --allow-blocking --no-reload
 ```
 
 Key directories:
-| Path | Purpose |
-|---|---|
-| `backend/packages/harness/deerflow/agents/lead_agent/` | Main agent logic |
+
+| Path                                                    | Purpose                                                  |
+| ------------------------------------------------------- | -------------------------------------------------------- |
+| `backend/packages/harness/deerflow/agents/lead_agent/`  | Main agent logic                                         |
 | `backend/packages/harness/deerflow/agents/middlewares/` | 10 middleware components (titles, memory, sandbox, etc.) |
-| `backend/packages/harness/deerflow/tools/` | Tool loading system |
-| `backend/packages/harness/deerflow/sandbox/` | Sandbox execution |
-| `backend/packages/harness/deerflow/models/` | LLM model factory |
-| `backend/packages/harness/deerflow/skills/` | Skills discovery and loading |
+| `backend/packages/harness/deerflow/tools/`              | Tool loading system                                      |
+| `backend/packages/harness/deerflow/sandbox/`            | Sandbox execution                                        |
+| `backend/packages/harness/deerflow/models/`             | LLM model factory                                        |
+| `backend/packages/harness/deerflow/skills/`             | Skills discovery and loading                             |
 
 > **Tip:** Use the LangGraph Studio UI at `http://localhost:2024` to visualize agent runs and inspect state step-by-step during debugging.
 
----
+***
 
 ### 7.3 Gateway API changes
 
@@ -414,25 +430,27 @@ Key directories:
 The Gateway is started with `--reload` in Terminal 2, so **file changes are picked up automatically**. No restart needed for most changes.
 
 Key directories:
-| Path | Purpose |
-|---|---|
-| `backend/app/gateway/app.py` | FastAPI application entry point |
+
+| Path                           | Purpose                                                         |
+| ------------------------------ | --------------------------------------------------------------- |
+| `backend/app/gateway/app.py`   | FastAPI application entry point                                 |
 | `backend/app/gateway/routers/` | Route modules (models, mcp, skills, memory, uploads, artifacts) |
-| `backend/app/channels/` | IM platform integrations (Slack, Telegram, Feishu) |
+| `backend/app/channels/`        | IM platform integrations (Slack, Telegram, Feishu)              |
 
 Test an endpoint quickly with curl:
-```powershell
+
+```PowerShell
 curl http://localhost:8001/health
 curl http://localhost:8001/api/models
 ```
 
----
+***
 
 ### 7.4 Running backend tests
 
 **Why:** The project enforces Test-Driven Development. Run tests frequently as you develop.
 
-```powershell
+```PowerShell
 cd backend
 
 # Run all tests
@@ -449,18 +467,19 @@ uv run pytest tests/test_client.py::TestGatewayConformance -v
 ```
 
 Important test files:
-| File | What it covers |
-|---|---|
-| `tests/test_client.py` | Unit + Gateway conformance tests for embedded client |
-| `tests/test_harness_boundary.py` | Enforces that harness never imports from `app.*` |
-| `tests/test_docker_sandbox_mode_detection.py` | Docker sandbox config detection |
-| `tests/test_provisioner_kubeconfig.py` | Provisioner kubeconfig handling |
 
----
+| File                                          | What it covers                                       |
+| --------------------------------------------- | ---------------------------------------------------- |
+| `tests/test_client.py`                        | Unit + Gateway conformance tests for embedded client |
+| `tests/test_harness_boundary.py`              | Enforces that harness never imports from `app.*`     |
+| `tests/test_docker_sandbox_mode_detection.py` | Docker sandbox config detection                      |
+| `tests/test_provisioner_kubeconfig.py`        | Provisioner kubeconfig handling                      |
+
+***
 
 ### 7.5 Linting and formatting
 
-```powershell
+```PowerShell
 # From backend/ directory:
 
 # Check lint errors
@@ -471,77 +490,80 @@ uv run -- uvx ruff check . --fix
 uv run -- uvx ruff format .
 ```
 
-```powershell
+```PowerShell
 # From frontend/ directory:
 pnpm lint
 pnpm lint:fix
 ```
 
----
+***
 
 ## 8. Understanding the Service Ports
 
-| URL | What you get |
-|---|---|
-| `http://localhost:2026` | **Main entry point** — use this in the browser |
-| `http://localhost:2026/api/models` | Gateway: list configured LLM models |
-| `http://localhost:2026/api/skills` | Gateway: list loaded skills |
-| `http://localhost:2026/api/memory` | Gateway: view agent memory |
-| `http://localhost:2026/api/langgraph/` | LangGraph API (proxied) |
-| `http://localhost:2024` | LangGraph Server (direct, includes Studio UI) |
-| `http://localhost:8001/health` | Gateway API health check (direct) |
-| `http://localhost:3000` | Next.js frontend (direct, bypasses nginx) |
+| URL                                    | What you get                                   |
+| -------------------------------------- | ---------------------------------------------- |
+| `http://localhost:2026`                | **Main entry point** — use this in the browser |
+| `http://localhost:2026/api/models`     | Gateway: list configured LLM models            |
+| `http://localhost:2026/api/skills`     | Gateway: list loaded skills                    |
+| `http://localhost:2026/api/memory`     | Gateway: view agent memory                     |
+| `http://localhost:2026/api/langgraph/` | LangGraph API (proxied)                        |
+| `http://localhost:2024`                | LangGraph Server (direct, includes Studio UI)  |
+| `http://localhost:8001/health`         | Gateway API health check (direct)              |
+| `http://localhost:3000`                | Next.js frontend (direct, bypasses nginx)      |
 
----
+***
 
 ## 9. Key Config Files
 
-| File | Purpose | Edit when… |
-|---|---|---|
-| `config.yaml` | Main app config: LLM models, tools, sandbox, memory | Adding a new model, changing sandbox mode, tuning memory |
-| `.env` | API keys for LLMs and search tools | Adding/changing API keys |
-| `extensions_config.json` | MCP servers and skills enable/disable state | Adding MCP tools or toggling skills |
-| `backend/langgraph.json` | LangGraph server entrypoint config | Registering new agents |
-| `docker/nginx/nginx.local.conf` | Nginx routing rules for local dev | Adding new routes or services |
+| File                            | Purpose                                             | Edit when…                                               |
+| ------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| `config.yaml`                   | Main app config: LLM models, tools, sandbox, memory | Adding a new model, changing sandbox mode, tuning memory |
+| `.env`                          | API keys for LLMs and search tools                  | Adding/changing API keys                                 |
+| `extensions_config.json`        | MCP servers and skills enable/disable state         | Adding MCP tools or toggling skills                      |
+| `backend/langgraph.json`        | LangGraph server entrypoint config                  | Registering new agents                                   |
+| `docker/nginx/nginx.local.conf` | Nginx routing rules for local dev                   | Adding new routes or services                            |
 
----
+***
 
 ## 10. Windows-Specific Notes & Troubleshooting
 
 ### `make` command not found
 
 `make` is a Linux/macOS tool. On Windows, use one of:
-- **Git Bash** (included with Git for Windows) — supports `make` if you install it via `pacman -S make` inside Git Bash
-- **Chocolatey:** `choco install make`
-- **WSL (Windows Subsystem for Linux):** Run everything under WSL Ubuntu for the closest Linux experience
+
+* **Git Bash** (included with Git for Windows) — supports `make` if you install it via `pacman -S make` inside Git Bash
+* **Chocolatey:** `choco install make`
+* **WSL (Windows Subsystem for Linux):** Run everything under WSL Ubuntu for the closest Linux experience
 
 Alternatively, just run each service manually in separate PowerShell terminals as shown in [Option B](#option-b--services-in-separate-terminals-recommended-for-development).
 
----
+***
 
 ### Nginx path issues on Windows
 
 The `nginx.local.conf` uses Unix-style paths internally. If nginx fails to start, try running it from within **Git Bash** instead of PowerShell:
 
-```bash
+```Shell
 nginx -c "$(pwd)/docker/nginx/nginx.local.conf" -p "$(pwd)"
 ```
 
----
+***
 
 ### `PYTHONPATH` in PowerShell
 
 When running `pytest` or `uvicorn` directly, set `PYTHONPATH` for the current session:
-```powershell
+
+```PowerShell
 $env:PYTHONPATH = "."
 ```
 
----
+***
 
 ### Port already in use
 
 If a service fails to start because its port is occupied:
-```powershell
+
+```PowerShell
 # Find what's using port 2024 (any port)
 netstat -ano | findstr :2024
 
@@ -549,60 +571,63 @@ netstat -ano | findstr :2024
 taskkill /PID <PID> /F
 ```
 
----
+***
 
 ### uv not found after installation
 
 Close and reopen your terminal, or manually add uv to the PATH:
-```powershell
+
+```PowerShell
 $env:PATH += ";$env:USERPROFILE\.local\bin"
 ```
 
 Add the same line to your PowerShell profile (`$PROFILE`) to make it permanent.
 
----
+***
 
 ### Config version warning on startup
 
 If you see a warning like `config_version mismatch`, run:
-```bash
+
+```Shell
 # In Git Bash or WSL
 make config-upgrade
 ```
+
 Or manually copy new fields from `config.example.yaml` to your `config.yaml`.
 
----
+***
 
-*Happy hacking! 🦌 When in doubt, check `backend/CLAUDE.md` for deep architecture notes and `CONTRIBUTING.md` for workflow guidelines.*
+*Happy hacking! 🦌 When in doubt, check* *`backend/CLAUDE.md`* *for deep architecture notes and* *`CONTRIBUTING.md`* *for workflow guidelines.*
 
----
+***
 
 ## 11. Connecting a Telegram Channel
 
 DeerFlow's Telegram integration uses **long-polling** — the Gateway API connects outbound to Telegram's servers. This means **no public IP, no webhook registration, and no ngrok required**. It works out of the box from any machine with internet access.
 
----
+***
 
 ### 11.1 Required DeerFlow Services
 
 Only two services need to be running:
 
-| Service | Port | Why needed |
-|---|---|---|
+| Service              | Port   | Why needed                                 |
+| -------------------- | ------ | ------------------------------------------ |
 | **LangGraph Server** | `2024` | Runs the AI agent that generates responses |
-| **Gateway API** | `8001` | Runs the Telegram bot long-polling loop |
+| **Gateway API**      | `8001` | Runs the Telegram bot long-polling loop    |
 
 The **Frontend** (port `3000`) and **Nginx** (port `2026`) are **not needed** for the Telegram channel.
 
----
+***
 
 ### 11.2 Create a Telegram Bot via @BotFather
 
 1. Open Telegram and search for **@BotFather** (the official bot creation bot).
 2. Send the command `/newbot`.
 3. BotFather will ask:
-   - **What's the name of your bot?** — Type a display name, e.g., `DeerFlow Assistant`.
-   - **What username?** — Must end in `bot`, e.g., `deerflow_myname_bot`.
+   * **What's the name of your bot?** — Type a display name, e.g., `DeerFlow Assistant`.
+   * **What username?** — Must end in `bot`, e.g., `deerflow_myname_bot`.
 4. BotFather replies with a message containing your **Bot Token**, which looks like:
    ```
    1234567890:ABCDefGhIJKlmNoPQRsTUVwxYZ
@@ -611,7 +636,7 @@ The **Frontend** (port `3000`) and **Nginx** (port `2026`) are **not needed** fo
 
 > Your bot is now created. Nobody can message it yet — it needs to be connected to DeerFlow first.
 
----
+***
 
 ### 11.3 Add the Bot Token to `.env`
 
@@ -623,13 +648,13 @@ TELEGRAM_BOT_TOKEN=1234567890:ABCDefGhIJKlmNoPQRsTUVwxYZ
 
 Replace the value with the token you copied from BotFather.
 
----
+***
 
 ### 11.4 Enable the Telegram Channel in `config.yaml`
 
 Open `config.yaml` and find the `# channels:` block near the bottom. Replace it with:
 
-```yaml
+```YAML
 channels:
   langgraph_url: http://localhost:2024
   gateway_url: http://localhost:8001
@@ -644,12 +669,12 @@ channels:
 
 **To restrict access to specific users only**, find your Telegram user ID (send `/start` to `@userinfobot` in Telegram) and add it:
 
-```yaml
+```YAML
     allowed_users:
       - 123456789   # your numeric Telegram user ID
 ```
 
----
+***
 
 ### 11.5 Start the Required Services
 
@@ -657,20 +682,20 @@ Open **two PowerShell terminals** from the project root:
 
 #### Terminal 1 — LangGraph Agent Server
 
-```powershell
+```PowerShell
 cd backend
 uv run langgraph dev --no-browser --allow-blocking --no-reload
 ```
 
 #### Terminal 2 — Gateway API
 
-```powershell
+```PowerShell
 cd backend
 $env:PYTHONPATH = "."
 uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --reload
 ```
 
----
+***
 
 ### 11.6 Verify the Channel Started
 
@@ -683,7 +708,7 @@ INFO  Telegram channel started
 
 If you see `channels: []` instead, the `config.yaml` channels block is still commented out — go back to Step 11.4.
 
----
+***
 
 ### 11.7 Send a Test Message
 
@@ -694,28 +719,28 @@ If you see `channels: []` instead, the `config.yaml` channels block is still com
 
 Watch Terminal 2 to see the incoming message events in real time.
 
----
+***
 
 ### 11.8 Available Bot Commands
 
 The Telegram channel registers these commands automatically:
 
-| Command | What it does |
-|---|---|
-| `/start` | Greets the user and shows a welcome message |
-| `/new` | Starts a new conversation thread |
-| `/status` | Shows the current agent status |
-| `/models` | Lists the configured LLM models |
-| `/memory` | Shows the agent's current memory facts |
-| `/help` | Shows available commands |
+| Command   | What it does                                |
+| --------- | ------------------------------------------- |
+| `/start`  | Greets the user and shows a welcome message |
+| `/new`    | Starts a new conversation thread            |
+| `/status` | Shows the current agent status              |
+| `/models` | Lists the configured LLM models             |
+| `/memory` | Shows the agent's current memory facts      |
+| `/help`   | Shows available commands                    |
 
----
+***
 
 ### 11.9 Restrict Access to Specific Users
 
 To prevent strangers from using your bot, add your Telegram user IDs to `allowed_users` in `config.yaml`:
 
-```yaml
+```YAML
 channels:
   langgraph_url: http://localhost:2024
   gateway_url: http://localhost:8001
@@ -729,25 +754,27 @@ channels:
 ```
 
 To find your user ID:
+
 1. Open Telegram and search for **@userinfobot**.
 2. Send it any message — it will reply with your numeric user ID.
 
 Restart the Gateway API after changing `config.yaml` to apply the new access list.
 
----
+***
 
 ### 11.10 Stopping the Bot
 
 Simply press **Ctrl+C** in Terminal 2 (the Gateway API terminal). The long-polling loop stops gracefully — no cleanup needed on Telegram's side.
 
----
+***
 
 ### 11.11 Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `channels: []` in startup log | `channels:` block still commented out in `config.yaml` | Uncomment and enable the `telegram:` block |
-| `TELEGRAM_BOT_TOKEN not found` | Token not added to `.env` | Add `TELEGRAM_BOT_TOKEN=...` to `.env` and restart Gateway |
-| Bot does not reply to messages | `allowed_users` is set and your ID is not in the list | Add your user ID or clear `allowed_users: []` |
-| Bot replies but agent errors out | LangGraph server not running | Start Terminal 1 with `uv run langgraph dev` |
-| `python-telegram-bot is not installed` | Missing dependency | Run `cd backend && uv sync` to reinstall all packages |
+| Symptom                                | Likely cause                                           | Fix                                                        |
+| -------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------- |
+| `channels: []` in startup log          | `channels:` block still commented out in `config.yaml` | Uncomment and enable the `telegram:` block                 |
+| `TELEGRAM_BOT_TOKEN not found`         | Token not added to `.env`                              | Add `TELEGRAM_BOT_TOKEN=...` to `.env` and restart Gateway |
+| Bot does not reply to messages         | `allowed_users` is set and your ID is not in the list  | Add your user ID or clear `allowed_users: []`              |
+| Bot replies but agent errors out       | LangGraph server not running                           | Start Terminal 1 with `uv run langgraph dev`               |
+| `python-telegram-bot is not installed` | Missing dependency                                     | Run `cd backend && uv sync` to reinstall all packages      |
+

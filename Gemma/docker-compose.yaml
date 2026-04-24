@@ -1,0 +1,146 @@
+# =============================================================================
+# vLLM + Gemma 4 E4B — Optimized for RTX 4070 Ti SUPER (16 GB)
+# =============================================================================
+#
+# KEY FACTS ABOUT YOUR SETUP:
+#   GPU  : RTX 4070 Ti SUPER — Ada Lovelace (SM89), 16 GB VRAM
+#   Model: google/gemma-4-E4B-it — ~4.5 B params, ~9 GB in BF16
+#   Image: vllm/vllm-openai:gemma4  (bundles transformers >= 5.5.0)
+#
+# ⚠️  IMPORTANT CONSTRAINTS:
+#   • FP8 quantization does NOT work on Ada Lovelace (needs SM90+ / Hopper).
+#     Your old SGLang config used --quantization fp8 — that would fail here.
+#   • Gemma 4 has heterogeneous attention heads (256 / 512), so vLLM
+#     forces the Triton attention backend automatically. This is expected.
+#   • BF16 weights (~9 GB) + KV cache + runtime overhead must fit in 16 GB.
+#     We cap context length and concurrent sequences to stay within budget.
+#
+# USAGE:
+#   1. Create a .env file with your HF_TOKEN:
+#        echo "HF_TOKEN=hf_xxxxxxxxxxxx" > .env
+#   2. Launch:
+#        docker compose up -d
+#   3. Test:
+#        curl http://localhost:8000/v1/chat/completions \
+#          -H "Content-Type: application/json" \
+#          -d '{"model":"gemma-4-E4B-it","messages":[{"role":"user","content":"Hello!"}]}'
+#   4. Logs:
+#        docker compose logs -f vllm
+# =============================================================================
+
+services:
+  vllm:
+    # -----------------------------------------------------------------
+    # IMAGE — Use the official Gemma 4 tag.
+    # It ships with transformers >= 5.5.0 pre-installed (no pip hacks).
+    # -----------------------------------------------------------------
+    image: vllm/vllm-openai:gemma4
+    container_name: gemma-vllm
+
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"          # OpenAI-compatible API
+
+    volumes:
+      # Persistent model cache so re-starts don't re-download ~9 GB
+      - ./model_cache:/root/.cache/huggingface
+
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      # Prevent PyTorch from reserving a giant CUDA memory block up front
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+    # Required for vLLM's shared-memory IPC between processes
+    ipc: host
+    # 1 GB shared memory for torch multiprocessing
+    shm_size: "1g"
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # -----------------------------------------------------------------
+    # vLLM SERVE COMMAND — every flag explained below
+    # -----------------------------------------------------------------
+    command:
+      - --model
+      - google/gemma-4-E4B-it
+      - --served-model-name
+      - gemma-4-E4B-it
+
+      # ── PRECISION ──────────────────────────────────────────────────
+      # BF16 is the native dtype for Gemma 4 and the best your GPU
+      # supports natively.  Do NOT use --quantization fp8 on Ada GPUs.
+      - --dtype
+      - bfloat16
+
+      # ── MEMORY BUDGET ──────────────────────────────────────────────
+      # Model weights ≈ 9 GB.  0.92 × 16 GB ≈ 14.7 GB available,
+      # leaving ~5.7 GB for KV cache + runtime.  Going higher risks
+      # OOM; going lower wastes usable KV cache space.
+      - --gpu-memory-utilization
+      - "0.92"
+
+      # ── CONTEXT LENGTH ─────────────────────────────────────────────
+      # Gemma 4 E4B defaults to 128 K context — way too much for 16 GB.
+      # 8192 is a sweet spot: useful for most chat / agentic tasks
+      # while keeping the KV cache small.
+      # Increase to 16384 if you only run 1 request at a time.
+      - --max-model-len
+      - "8192"
+
+      # ── CONCURRENCY CAP ────────────────────────────────────────────
+      # Each concurrent sequence eats KV-cache memory.  On 16 GB,
+      # limit to 4 to avoid OOM under load.
+      - --max-num-seqs
+      - "4"
+
+      # ── SKIP MULTIMODAL PROFILING ──────────────────────────────────
+      # If you only send TEXT (no images / audio), this skips
+      # allocating encoder memory entirely — saves ~0.5-1 GB.
+      # REMOVE these two lines if you need image input.
+      - --limit-mm-per-prompt
+      - image=0,audio=0
+
+      # ── EAGER MODE ─────────────────────────────────────────────────
+      # CUDA graphs reserve extra VRAM for each captured batch size.
+      # On a tight 16 GB budget, eager mode trades a small speed
+      # penalty for significant memory savings.
+      - --enforce-eager
+
+      # ── CHUNKED PREFILL ────────────────────────────────────────────
+      # Breaks long prompts into chunks so they don't monopolize
+      # the GPU.  Reduces time-to-first-token spikes and lowers
+      # peak memory during prefill.
+      - --enable-chunked-prefill
+
+      # ── PREFIX CACHING ─────────────────────────────────────────────
+      # Caches KV blocks for repeated prompt prefixes (system
+      # messages, few-shot examples).  Saves compute on every
+      # request that shares the same prefix.
+      - --enable-prefix-caching
+
+      # ── NETWORKING ─────────────────────────────────────────────────
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+
+      # ── TRUST REMOTE CODE ──────────────────────────────────────────
+      - --trust-remote-code
+
+    # -----------------------------------------------------------------
+    # HEALTH CHECK — vLLM exposes /health once the model is loaded
+    # -----------------------------------------------------------------
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      # Gemma 4 E4B takes ~60-120 s to load on consumer hardware
+      start_period: 180s

@@ -1,0 +1,147 @@
+# =============================================================================
+# vLLM + Gemma 4 E4B GPTQ INT4 — Optimized for RTX 4070 Ti SUPER (16 GB)
+# =============================================================================
+#
+# KEY FACTS ABOUT THIS SETUP:
+#   GPU   : RTX 4070 Ti SUPER — Ada Lovelace (SM89), 16 GB VRAM
+#   Model : ciocan/gemma-4-E4B-it-W4A16 — GPTQ 4-bit, weights ~2.5 GB
+#   Image : vllm/vllm-openai:gemma4  (bundles transformers >= 5.5.0)
+#
+# WHY GPTQ INSTEAD OF BF16:
+#   Weights shrink from ~9 GB → ~2.5 GB, freeing ~6.5 GB for KV cache.
+#   That lets you run 24 K context (vs 8 K for BF16) and serve more
+#   concurrent requests.  Speed also improves: ~15-22 tok/s vs ~5-8 tok/s
+#   for BF16, because smaller weights mean less memory bandwidth per token.
+#
+# IMPORTANT NOTES:
+#   • Vision and audio towers are kept at full BF16 precision — only the
+#     language model weights are quantized. Multimodal quality is unaffected.
+#   • softcap tensors have been stripped from this checkpoint for vLLM
+#     0.19.0+ compatibility (the model author handled this).
+#   • The Triton attention fallback still applies — see README.
+#   • Do NOT use --dtype bfloat16 with GPTQ; float16 is required by the
+#     GPTQ kernel. The model card explicitly states this.
+#
+# USAGE:
+#   1. Create a .env file:
+#        echo "HF_TOKEN=hf_xxxxxxxxxxxx" > .env
+#   2. Launch:
+#        docker compose -f docker-compose.gptq.yml up -d
+#   3. Test:
+#        curl http://localhost:8000/v1/chat/completions \
+#          -H "Content-Type: application/json" \
+#          -d '{"model":"gemma-4-E4B-it-GPTQ","messages":[{"role":"user","content":"Hello!"}]}'
+#   4. Logs:
+#        docker compose -f docker-compose.gptq.yml logs -f vllm
+# =============================================================================
+
+services:
+  vllm:
+    image: vllm/vllm-openai:gemma4
+    container_name: gemma-vllm-gptq
+
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      # Shared cache — if you already ran the BF16 compose, the GPTQ model
+      # (~4.5 GB on disk) downloads into the same folder alongside it.
+      - ./model_cache:/root/.cache/huggingface
+
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+    ipc: host
+    shm_size: "1g"
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    command:
+      # ── MODEL ──────────────────────────────────────────────────────────
+      - ciocan/gemma-4-E4B-it-W4A16
+      - --served-model-name
+      - gemma-4-E4B-it-GPTQ
+
+      # ── QUANTIZATION ───────────────────────────────────────────────────
+      # GPTQ W4A16: weights are 4-bit integers, activations stay float16.
+      # float16 is required — bfloat16 is incompatible with the GPTQ kernel.
+      - --dtype
+      - float16
+      - --quantization
+      - gptq
+
+      # ── MEMORY BUDGET ──────────────────────────────────────────────────
+      # Weights only use ~2.5 GB, so 0.92 × 16 GB leaves ~11 GB for KV
+      # cache and runtime — a massive improvement over BF16's ~5.7 GB.
+      - --gpu-memory-utilization
+      - "0.8"
+
+      # ── CONTEXT LENGTH ─────────────────────────────────────────────────
+      # 24 K is comfortable with GPTQ on 16 GB.  Increase to 32768 if you
+      # only run one request at a time and want maximum context.
+      - --max-model-len
+      - "24576"
+
+      # ── CONCURRENCY CAP ────────────────────────────────────────────────
+      # With ~11 GB of KV budget, 8 concurrent sequences is safe.
+      # Raise to 12 for lighter workloads, lower to 4 if you hit OOM.
+      - --max-num-seqs
+      - "8"
+
+      # ── SKIP MULTIMODAL PROFILING ──────────────────────────────────────
+      # Text-only mode: skips encoder memory allocation (~0.5-1 GB saved).
+      # Remove these two lines to enable image / audio inputs.
+      - --limit-mm-per-prompt
+      - '{"image": 0, "audio": 0}'
+
+      # ── EAGER MODE ─────────────────────────────────────────────────────
+      # CUDA graphs save VRAM for different batch sizes. With plenty of
+      # headroom on GPTQ, this is less critical than on BF16 — but it
+      # still avoids a warm-up OOM spike on the first few requests.
+      - --enforce-eager
+
+      # ── CHUNKED PREFILL ────────────────────────────────────────────────
+      # Especially important at 24 K context: long prompts are chunked so
+      # they don't spike VRAM during prefill.
+      - --enable-chunked-prefill
+
+      # ── PREFIX CACHING ─────────────────────────────────────────────────
+      # Caches KV blocks for shared prefixes (system prompts, RAG context).
+      # More useful here than on BF16 because the larger KV budget means
+      # more blocks can actually be cached.
+      - --enable-prefix-caching
+
+      # ── TOOL CALLING ───────────────────────────────────────────────────
+      # E4B supports function calling. Enabled by default here since GPTQ
+      # is the recommended daily-driver config for agentic workflows.
+      # NOTE: do NOT add --reasoning-parser gemma4 alongside this — it
+      # breaks streaming tool calls on E4B (reasoning tags interfere with
+      # the tool parser).
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - gemma4
+
+      # ── NETWORKING ─────────────────────────────────────────────────────
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+
+      - --trust-remote-code
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      # GPTQ model loads faster than BF16 (~45-90 s) due to smaller weights
+      start_period: 120s
