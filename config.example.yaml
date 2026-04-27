@@ -326,6 +326,33 @@ models:
   #       chat_template_kwargs:
   #         enable_thinking: true
 
+  # Example: llama.cpp llama-server (OpenAI-compatible)
+  # llama-server exposes an OpenAI-compatible API — use langchain_openai:ChatOpenAI.
+  #
+  # 1. Start the server (set LLAMA_API_KEY to match --api-key):
+  #    llama-server -hf unsloth/gemma-4-E4B-it-GGUF:IQ4_NL \
+  #      --host 0.0.0.0 --port 8080 --api-key $LLAMA_API_KEY \
+  #      -t 20 -ngl 999 -fa -c 0
+  #
+  # 2. Set the API key environment variable (Windows):
+  #    setx LLAMA_API_KEY "my_secret_key"
+  #    (Must match the --api-key value passed to llama-server)
+  #
+  # 3. Verify the model name llama-server reports:
+  #    curl http://localhost:8080/v1/models
+  #    Use that exact string as the `model` field below.
+  #
+  # - name: gemma4-llama
+  #   display_name: Gemma 4 E4B (llama.cpp)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: unsloth/gemma-4-E4B-it-GGUF   # verify with /v1/models endpoint
+  #   api_key: $LLAMA_API_KEY               # must match --api-key on llama-server
+  #   base_url: http://localhost:8080/v1
+  #   request_timeout: 600.0
+  #   max_retries: 2
+  #   max_tokens: 10000
+  #   supports_vision: true                 # requires --mmproj flag on llama-server
+
 # ============================================================================
 # Tool Groups Configuration
 # ============================================================================

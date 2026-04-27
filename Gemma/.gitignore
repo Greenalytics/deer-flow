@@ -8,3 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Model cache (HuggingFace and llama.cpp)
+# Downloaded models are large; keep locally, don't commit
+model_cache/
+.cache/
+
+# Checkpoint files
+checkpoints.db
+*.db
